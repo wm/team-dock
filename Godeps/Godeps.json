@@ -1,0 +1,14 @@
+{
+	"ImportPath": "github.com/wm/team-dock",
+	"GoVersion": "go1.2rc3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/inject",
+			"Rev": "37512bbe41b4cc579cdd706742efc7bf34f94b06"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/martini",
+			"Rev": "fc85f10778a765eee8af3f778bf88b1b0aa48009"
+		}
+	]
+}
