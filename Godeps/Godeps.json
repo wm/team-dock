@@ -9,6 +9,14 @@
 		{
 			"ImportPath": "github.com/codegangsta/martini",
 			"Rev": "fc85f10778a765eee8af3f778bf88b1b0aa48009"
+		},
+		{
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "b61dfd1700df87f7d4f354561847b87e52335aa6"
+		},
+		{
+			"ImportPath": "github.com/wm/go-flowdock/flowdock",
+			"Rev": "29bd8da7960a1d40ff57416146885fd1a72de9bf"
 		}
 	]
 }
