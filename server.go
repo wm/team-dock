@@ -2,9 +2,11 @@ package main
 
 import (
 	"github.com/codegangsta/martini"
+	"github.com/wm/go-flowdock/flowdock"
 	"net/http"
 	"net/url"
 	"fmt"
+	"syscall"
 )
 
 type Build struct {
@@ -28,10 +30,15 @@ type Build struct {
 	BuildName             string   `json:"buildName,omitempty"`
 }
 
+//TODO: use const for uri's etc.
+var flowClient *flowdock.Client //TODO pass this into the context or martini
+var lastActionErr error
 var lastBuild = Build{}
 var lastForm = url.Values{} //map[string]string{}
+var lastAction = "No action yet taken"
 
 func main() {
+	flowClient = flowdock.NewClient(nil)
 	m := martini.New()
 
 	// Setup middleware
@@ -55,10 +62,27 @@ func Welcome() string {
 }
 
 func LastStatus() string {
-	return fmt.Sprintf("Build: %+v, %+v", lastBuild, lastForm)
+	return fmt.Sprintf("Build: %+v, %+v, %+v, %+v", lastBuild, lastForm, lastAction, lastActionErr)
 }
 
 func Status(r *http.Request, w http.ResponseWriter) (result string) {
+	build := encodeBuild(r)
+	apiToken, ok := syscall.Getenv("FLOW_API_TOKEN")
+	if ok {
+		lastAction = "sending to Flow"
+		lastActionErr = sendBuildToFlow(flowClient, build, apiToken)
+	} else {
+		lastActionErr = nil
+		lastAction = "FLOW_API_TOKEN is not set"
+	}
+
+	lastForm = r.Form
+	lastBuild = *build
+	return "ok"
+}
+
+// TODO: do it similar to json Encode method in the future
+func encodeBuild(r *http.Request) *Build {
 	currentBuild := Build{
 		BuildStatusPrevious: r.FormValue("buildStatusPrevious"),
 		BuildId:             r.FormValue("buildId"),
@@ -80,7 +104,55 @@ func Status(r *http.Request, w http.ResponseWriter) (result string) {
 		BuildName:           r.FormValue("buildName"),
 	}
 
-	lastBuild = currentBuild
-	lastForm = r.Form
-	return "ok"
+	return &currentBuild
+}
+
+func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string) error {
+	var fromAddress string
+
+	if build.BuildStatus == "success" {
+		fromAddress = "build+ok@flowdock.com"
+	} else if build.BuildStatus == "failure" {
+		fromAddress = "build+fail@flowdock.com"
+	} else {
+		fromAddress = "build+pending@flowdock.com"
+	}
+
+	body := statusBody(build)
+	opt := &flowdock.InboxCreateOptions{
+		Source:       "go-flowdock",
+		FromAddress:  fromAddress,
+		Subject:     fmt.Sprintf("%v build %v has %v", build.ProjectName, build.BuildNumber, build.BuildStatus),
+		Tags:        []string{build.BuildStatus, "CI", build.BuildNumber, build.ProjectName},
+		Project:     build.ProjectName,
+		FromName:    "TeamCity CI",
+		Content:      body,
+	}
+
+	_, _, err := client.Inbox.Create(flowApiToken, opt)
+
+	return err
+}
+
+func statusBody(build *Build) string {
+	gitUri := "https://github.com/IoraHealth/"
+	ciUri  := "http://nest.icisapp.com/viewLog.html"
+	body   := fmt.Sprintf(`
+<ul>
+	<li>
+		<code><a href="{{gitUri}}{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code> build #{{.BuildNumber}} has {{.BuildStatus}}!
+	</li>
+	<li>
+		Branch: <code>{{.BuildName}}</code>
+	</li>
+	<li>
+	Build details: "{{ciUri}}?buildId={{.BuildId}}&tab=buildLog&buildTypeId={{.BuildTypeId}}"
+	</li>
+	<li>
+    {{.Message}}
+	</li>
+</ul>
+`, gitUri, ciUri)
+
+    return body
 }
