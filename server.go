@@ -124,7 +124,7 @@ func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string)
 	opt := &flowdock.InboxCreateOptions{
 		Source:       "go-flowdock",
 		FromAddress:  fromAddress,
-		Subject:     fmt.Sprintf("%v build %v has %v", build.ProjectName, build.BuildNumber, build.BuildStatus),
+		Subject:     fmt.Sprintf("%v build %v - %v", build.ProjectName, build.BuildNumber, build.BuildStatus),
 		Tags:        []string{build.BuildStatus, "CI", build.BuildNumber, build.ProjectName},
 		Project:     build.ProjectName,
 		FromName:    "TeamCity CI",
@@ -142,13 +142,14 @@ func statusBody(build *Build) string {
 	bodyTmpl, err  := template.New("body").Parse(`
 <ul>
 	<li>
-	<code><a href="https://github.com/IoraHealth/{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code> build #{{.BuildNumber}} has {{.BuildStatus}}!
+	<code><a href="https://github.com/IoraHealth/{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code>
+	build #{{.BuildNumber}}: {{.BuildStatus}}!
 	</li>
 	<li>
 		Branch: <code>{{.BuildName}}</code>
 	</li>
 	<li>
-	Build details: "http://nest.icisapp.com/viewLog.html?buildId={{.BuildId}}&tab=buildLog&buildTypeId={{.BuildTypeId}}"
+	<a href="http://nest.icisapp.com/viewLog.html?buildId={{.BuildId}}&tab=buildLog&buildTypeId={{.BuildTypeId}}">Build details</a>
 	</li>
 	<li>
     {{.Message}}
