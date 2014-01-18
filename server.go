@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"fmt"
 	"syscall"
+	"text/template"
+	"bytes"
 )
 
 type Build struct {
@@ -135,24 +137,28 @@ func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string)
 }
 
 func statusBody(build *Build) string {
-	gitUri := "https://github.com/IoraHealth/"
-	ciUri  := "http://nest.icisapp.com/viewLog.html"
-	body   := fmt.Sprintf(`
+	var body bytes.Buffer
+
+	bodyTmpl, err  := template.New("body").Parse(`
 <ul>
 	<li>
-		<code><a href="{{gitUri}}{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code> build #{{.BuildNumber}} has {{.BuildStatus}}!
+	<code><a href="https://github.com/IoraHealth/{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code> build #{{.BuildNumber}} has {{.BuildStatus}}!
 	</li>
 	<li>
 		Branch: <code>{{.BuildName}}</code>
 	</li>
 	<li>
-	Build details: "{{ciUri}}?buildId={{.BuildId}}&tab=buildLog&buildTypeId={{.BuildTypeId}}"
+	Build details: "http://nest.icisapp.com/viewLog.html?buildId={{.BuildId}}&tab=buildLog&buildTypeId={{.BuildTypeId}}"
 	</li>
 	<li>
     {{.Message}}
 	</li>
 </ul>
-`, gitUri, ciUri)
+`)
 
-    return body
+	if err != nil { panic(err) }
+	err = bodyTmpl.Execute(&body, build)
+	if err != nil { panic(err) }
+
+    return body.String()
 }
