@@ -112,20 +112,19 @@ func encodeBuild(r *http.Request) *Build {
 func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string) error {
 	var fromAddress string
 
-	if build.BuildStatus == "success" {
-		fromAddress = "build+ok@flowdock.com"
-	} else if build.BuildStatus == "failure" {
-		fromAddress = "build+fail@flowdock.com"
-	} else {
-		fromAddress = "build+pending@flowdock.com"
+	switch build.BuildResult {
+	case "success":  fromAddress = "build+ok@flowdock.com"
+	case "running":  fromAddress = "build+started@flowdock.com"
+	case "canceled": fromAddress = "build+canceled@flowdock.com"
+	default:         fromAddress = "build+fail@flowdock.com"
 	}
 
 	body := statusBody(build)
 	opt := &flowdock.InboxCreateOptions{
 		Source:       "go-flowdock",
 		FromAddress:  fromAddress,
-		Subject:     fmt.Sprintf("%v build %v - %v", build.ProjectName, build.BuildNumber, build.BuildStatus),
-		Tags:        []string{build.BuildStatus, "CI", build.BuildNumber, build.ProjectName},
+		Subject:     fmt.Sprintf("%v build %v - %v", build.ProjectName, build.BuildNumber, build.BuildResult),
+		Tags:        []string{build.BuildResult, "CI", build.BuildNumber, build.ProjectName},
 		Project:     build.ProjectName,
 		FromName:    "TeamCity CI",
 		Content:      body,
@@ -143,7 +142,7 @@ func statusBody(build *Build) string {
 <ul>
 	<li>
 	<code><a href="https://github.com/IoraHealth/{{.ProjectName}}">IoraHealth/{{.ProjectName}}</a></code>
-	build #{{.BuildNumber}}: {{.BuildStatus}}!
+	build #{{.BuildNumber}}: {{.BuildResult}}!
 	</li>
 	<li>
 		Branch: <code>{{.BuildName}}</code>
