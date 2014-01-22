@@ -120,14 +120,16 @@ func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string)
 	}
 
 	body := statusBody(build)
+	url := fmt.Sprintf("http://nest.icisapp.com/viewLog.html?buildId=%v&tab=buildLog&buildTypeId=%v", build.BuildId, build.BuildTypeId)
 	opt := &flowdock.InboxCreateOptions{
-		Source:       "go-flowdock",
-		FromAddress:  fromAddress,
+		Source:      "TeamCity CI (nest)",
+		FromAddress: fromAddress,
 		Subject:     fmt.Sprintf("%v build %v - %v", build.ProjectName, build.BuildNumber, build.BuildResult),
 		Tags:        []string{build.BuildResult, "CI", build.BuildNumber, build.ProjectName},
 		Project:     build.ProjectName,
 		FromName:    "TeamCity CI",
-		Content:      body,
+		Link:        url,
+		Content:     body,
 	}
 
 	_, _, err := client.Inbox.Create(flowApiToken, opt)
