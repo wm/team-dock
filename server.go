@@ -125,7 +125,7 @@ func sendBuildToFlow(client *flowdock.Client, build *Build, flowApiToken string)
 		Source:      "TeamCity-CI",
 		FromAddress: fromAddress,
 		Subject:     fmt.Sprintf("%v build %v - %v", build.ProjectName, build.BuildNumber, build.BuildResult),
-		Tags:        []string{build.BuildResult, "CI", build.BuildNumber, build.ProjectName},
+		Tags:        []string{build.BuildName, build.BuildResult, "CI", build.BuildNumber, build.ProjectName},
 		Project:     build.ProjectName,
 		FromName:    "TeamCity CI",
 		Link:        url,
